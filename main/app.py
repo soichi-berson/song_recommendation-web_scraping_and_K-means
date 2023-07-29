@@ -77,7 +77,7 @@ def scale_audio_features(df: pd.DataFrame, filename="../scaler/scaler.pickle"):
     return scaled_audio_features_df
 
 
-def get_user_song_cluster(scaled_audio_features_df: pd.DataFrame, filename="../pickle/kmeans_20.pickle"):
+def get_user_song_cluster(scaled_audio_features_df: pd.DataFrame, filename="../pickle/kmeans_44.pickle"):
     
     try:
         with open(filename, "rb") as file:
@@ -111,23 +111,16 @@ def recommend_song(df, song_title, artist_name):
     # Determine the user's song cluster
     user_song_cluster = get_user_song_cluster(user_song_scaled_audio_features_df)
 
-    #if ( is_hot == "Yes" ): # Recommend another hot song from the the same cluster:
-    #    subset = df[(df['set'] == "H") & (df['K20'] == user_song_cluster)]
-    #    if len(subset) < 5:
-    #        rec_song = df[(df['set'] == "H") & (df['K20'] == user_song_cluster) ].sample(len(subset))
-    #    else:
-    #        rec_song = df[(df['set'] == "H") & (df['K20'] == user_song_cluster) ].sample(5)
-    #else: # Recommend another not hot song from the same cluster
-    #    subset = df[(df['set'] == "H") & (df['K20'] == user_song_cluster)]
-    #    if len(subset) < 5:
-    #        rec_song = df[(df['set'] == "N") &(df['K20'] == user_song_cluster)].sample(len(subset))
-    #    else:
-    #        rec_song = df[(df['set'] == "N") &(df['K20'] == user_song_cluster)].sample(5)
-    
-    rec_song = df[df['K20'] == user_song_cluster].sample(5)    
-    rec_song['Listen to Your Songs Now'] = 'https://open.spotify.com/track/' + rec_song['id']
+    # choose the songs
+    rec_song = df[df['K44'] == user_song_cluster]
+    if song_title in rec_song["Title"]:
+        rec_song = rec_song[rec_song['Title'] != song_title]
+    # choose sample 5 songs
+    rec_song = rec_song.sample(5)
 
-    #st.write(len(rec_song))
+    #rec_song['Listen to Your Songs Now'] = 'https://open.spotify.com/track/' + rec_song['id']
+
+
 
     if len(rec_song) == 0:
         st.subheader("Sorry. There is no reccommendations from our storage. Rerun and search another one.")
@@ -149,8 +142,14 @@ def recommend_song(df, song_title, artist_name):
         st.subheader(str(index) + '.')
 
         # Get the URL
+        query = "track:{} artist:{}".format(one_song['Title'], one_song['Artist'])
+        result = sp.search(q=query, limit=1, type='track')
+        song = result['tracks']['items'][0]
+        url = song['external_urls']['spotify']
+
+        #ID
         ID = search_song(one_song['Title'], one_song['Artist'])
-        url = 'https://open.spotify.com/track/' + ID
+        
 
         # Get the image
         image_url = get_track_image_url(ID)
